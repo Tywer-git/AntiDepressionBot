@@ -252,7 +252,7 @@ def create_mood_calendar(message) -> dict:
             k += 1
         else:
             final_dates.append('В этот день не было записей.')
-    return dict(zip(dates, final_dates[::-1]))
+    return dict(zip(dates, final_dates))
 
 
 def check_mood_calender(message):
@@ -347,7 +347,7 @@ def set_reminder_time(message):
     # Проверяем корректность формата времени
     hour, minute = map(int, time_str.split(':'))
 
-    if 0 <= hour < 23 and 0 <= minute < 60:
+    if 0 <= hour <= 23 and 0 <= minute < 60:
         user_id = message.chat.id
         reminder_time = f'{hour:02}:{minute:02}'
         write_schedule_to_file(file_name_schedule, user_names[message.chat.id], reminder_time)
