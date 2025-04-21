@@ -1,3 +1,10 @@
+"""
+Для запуска программы на своём устройстве нужно выполнить следующие шаги:
+    1) установить необходимые библиотеки
+    2) получить токен бота в канале @BotFather и вставить его в 25 строку кода.
+    3) установить расположения файлов для хранения информации(строки 14 - 17)
+"""
+
 import telebot
 from telebot import types
 import datetime
@@ -217,18 +224,21 @@ def write_mood(message):
     """Записываем настроение и дату записи в файл"""
     mood = message.text
 
-    if mood in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
-        write_stat_to_file(file_name_stat, user_names[message.chat.id], int(mood),
-                           datetime.datetime.now().strftime('%Y-%m-%d'))
-        bot.send_message(message.chat.id, 'Спасибо! Я запомнил ваш выбор.')
+    try:
+        if 0 <= int(mood) <= 10:
+            write_stat_to_file(file_name_stat, user_names[message.chat.id], int(mood),
+                               datetime.datetime.now().strftime('%Y-%m-%d'))
+            bot.send_message(message.chat.id, 'Спасибо! Я запомнил ваш выбор.')
 
-        if calculate_depression_warning(create_mood_calendar(message)):
-            # Проверка на низкий показатель ответов
-            bot.send_message(message.chat.id, 'Я заметил, что в последнее время вы часто указываете'
-                                              'плохое настроение. Рекомендую пройти Вам тест Бека'
-                                              'на депрессию.')
+            if calculate_depression_warning(create_mood_calendar(message)):
+                # Проверка на низкий показатель ответов
+                bot.send_message(message.chat.id, 'Я заметил, что в последнее время вы часто указываете'
+                                                  ' плохое настроение. Рекомендую пройти Вам тест Бека '
+                                                  'на депрессию.')
 
-    else:
+        else:
+            raise ValueError
+    except ValueError:
         bot.send_message(message.chat.id, 'Пожалуйста, напишите число от 1 до 10.')
         bot.register_next_step_handler(message, write_mood)
 
@@ -324,37 +334,42 @@ def process_answer(message, question_index, total_score):
 def give_recommendation(test_score: int) -> str:
     """Выдаём рекомендации по результатам теста Бека"""
     if 0 <= test_score <= 13:
-        return ('Согласно тесту Бека, у Вас нет депрессии. Для поддержания ментального '
-                'здоровья, пожалуйста, продолжайте занятия, которые раньше приносили Вам удовольствие, оставайтесь на связи с друзьями и родственниками, регулярно поддерживайте физическую активность, соблюдайте режим питания и сна, откажитесь от алкоголя. ')
+        return (f'Ваш результат: {test_score}.\nСогласно тесту Бека, у Вас нет депрессии. Для поддержания ментального '
+                f'здоровья, пожалуйста, продолжайте занятия, которые раньше приносили Вам удовольствие, оставайтесь на связи с друзьями и родственниками, регулярно поддерживайте физическую активность, соблюдайте режим питания и сна, откажитесь от алкоголя. ')
 
     elif 14 <= test_score <= 19:
-        return ('Согласно тесту Бека, у Вас лёгкая депрессия. Для поддержания ментального '
-                'здоровья, пожалуйста, продолжайте занятия, которые раньше приносили Вам удовольствие, оставайтесь на связи с друзьями и родственниками, регулярно поддерживайте физическую активность, соблюдайте режим питания и сна, откажитесь от алкоголя. ')
+        return (f'Ваш результат: {test_score}.\nСогласно тесту Бека, у Вас лёгкая депрессия. Для поддержания ментального '
+                f'здоровья, пожалуйста, продолжайте занятия, которые раньше приносили Вам удовольствие, оставайтесь на связи с друзьями и родственниками, регулярно поддерживайте физическую активность, соблюдайте режим питания и сна, откажитесь от алкоголя. ')
 
     elif 20 <= test_score <= 28:
-        return ('Согласно тесту Бека, у Вас умеренная депрессия. Рекомендую вам обратиться за помощью '
-                'к психиатру. \nТелефон единой помощи: 8 800 222-55-71')
+        return (f'Ваш результат: {test_score}.\nСогласно тесту Бека, у Вас умеренная депрессия. Рекомендую вам обратиться за помощью '
+                f'к психиатру. \nТелефон единой помощи: 8 800 222-55-71')
 
     elif 29 <= test_score <= 63:
-        return ('Согласно тесту Бека, у Вас тяжёлая депрессия. Рекомендую вам обратиться за помощью '
-                'к психиатру. \nТелефон единой помощи: 8 800 222-55-71')
+        return (f'Ваш результат: {test_score}.\nСогласно тесту Бека, у Вас тяжёлая депрессия. Рекомендую вам обратиться за помощью '
+                f'к психиатру. \nТелефон единой помощи: 8 800 222-55-71')
 
 
 def set_reminder_time(message):
     """Устанавливаем пользовательское время напоминания"""
     # Извлекаем время из сообщения
     time_str = message.text
-    # Проверяем корректность формата времени
-    hour, minute = map(int, time_str.split(':'))
+    try:
+        # Проверяем корректность формата времени
+        hour, minute = map(int, time_str.split(':'))
 
-    if 0 <= hour <= 23 and 0 <= minute < 60:
-        user_id = message.chat.id
-        reminder_time = f'{hour:02}:{minute:02}'
-        write_schedule_to_file(file_name_schedule, user_names[message.chat.id], reminder_time)
-        schedule_reminder(user_id)
-        bot.reply_to(message, f'Время напоминания установлено на {reminder_time}.')
-    else:
+        if 0 <= hour <= 23 and 0 <= minute < 60:
+            user_id = message.chat.id
+            reminder_time = f'{hour:02}:{minute:02}'
+            write_schedule_to_file(file_name_schedule, user_names[message.chat.id], reminder_time)
+            schedule_reminder(user_id)
+            bot.reply_to(message, f'Время напоминания установлено на {reminder_time}.')
+        else:
+            raise ValueError
+
+    except ValueError:
         bot.reply_to(message, 'Пожалуйста, укажите корректное время в формате HH:MM.')
+        bot.register_next_step_handler(message, set_reminder_time)
 
 
 def send_reminder(user_id):
